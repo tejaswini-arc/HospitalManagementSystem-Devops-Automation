@@ -104,11 +104,10 @@ export default function SignupPage() {
     }
   }
 
-  const handleGoogleSignup = () => {
-
-    window.location.href =
-      `${BACKEND_URL}/oauth2/authorization/google`
-  }
+ const handleGoogleSignup = () => {
+     window.location.href =
+        "http://localhost:8080/api/v1/oauth2/authorization/google";
+ };
 
   return (
     <div style={styles.page}>
