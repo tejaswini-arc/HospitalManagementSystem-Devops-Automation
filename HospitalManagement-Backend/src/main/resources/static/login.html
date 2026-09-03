@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Hospital Management - Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f2f5; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 360px; }
+        h2 { text-align: center; margin-bottom: 1.5rem; color: #333; }
+        .divider { display: flex; align-items: center; margin: 1.2rem 0; color: #aaa; font-size: 0.85rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #ddd; }
+        .divider span { padding: 0 0.5rem; }
+        input { width: 100%; padding: 0.6rem 0.8rem; margin-bottom: 0.8rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 0.95rem; }
+        .btn { width: 100%; padding: 0.7rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem; }
+        .btn-email { background: #1a73e8; color: white; }
+        .btn-email:hover { background: #1558b0; }
+        .btn-google { background: white; color: #444; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-decoration: none; padding: 0.7rem; border-radius: 4px; font-size: 0.95rem; }
+        .btn-google:hover { background: #f7f7f7; }
+        .btn-google img { width: 20px; height: 20px; }
+        .signup-link { text-align: center; margin-top: 1rem; font-size: 0.9rem; color: #555; }
+        .signup-link a { color: #1a73e8; text-decoration: none; }
+        #message { margin-top: 1rem; padding: 0.6rem; border-radius: 4px; font-size: 0.85rem; display: none; }
+        #message.success { background: #e6f4ea; color: #2d7a3a; }
+        #message.error { background: #fce8e6; color: #c5221f; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Hospital Management</h2>
+
+    <a href="/api/v1/oauth2/authorization/google" class="btn btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Continue with Google
+    </a>
+
+    <div class="divider"><span>or use email</span></div>
+
+    <form id="loginForm">
+        <input type="email" id="username" placeholder="Email" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit" class="btn btn-email">Sign In</button>
+    </form>
+
+    <div class="signup-link">
+        Don't have an account? <a href="#" id="showSignup">Sign up</a>
+    </div>
+
+    <form id="signupForm" style="display:none; margin-top:1rem;">
+        <div class="divider"><span>create account</span></div>
+        <input type="text" id="signupName" placeholder="Full Name" required />
+        <input type="email" id="signupUsername" placeholder="Email" required />
+        <input type="password" id="signupPassword" placeholder="Password" required />
+        <button type="submit" class="btn btn-email">Sign Up</button>
+    </form>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    const BASE = '/api/v1';
+
+    document.getElementById('showSignup').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('signupForm').style.display = 'block';
+        document.getElementById('showSignup').style.display = 'none';
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await fetch(`${BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('jwt', data.jwt);
+            localStorage.setItem('userId', data.userId);
+            window.location.href = '/api/v1/dashboard.html';
+        } else {
+            showMessage(false, data.message || 'Login failed');
+        }
+    });
+
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await fetch(`${BASE}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: document.getElementById('signupUsername').value,
+                password: document.getElementById('signupPassword').value,
+                name: document.getElementById('signupName').value
+            })
+        });
+        const data = await res.json();
+        showMessage(res.ok, res.ok ? 'Account created! Please sign in.' : data.message || 'Signup failed');
+    });
+
+    function showMessage(success, text) {
+        const el = document.getElementById('message');
+        el.className = success ? 'success' : 'error';
+        el.textContent = text;
+        el.style.display = 'block';
+    }
+</script>
+</body>
+</html>

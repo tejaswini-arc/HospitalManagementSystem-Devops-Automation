@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hospital Management - Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f0f2f5; }
+
+        .navbar { background: #1a73e8; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .navbar h1 { margin: 0; font-size: 1.2rem; }
+
+        /* Dropdown */
+        .dropdown { position: relative; }
+        .dropdown-btn { background: white; color: #1a73e8; border: none; padding: 0.4rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem; }
+        .dropdown-btn:hover { background: #e8f0fe; }
+        .dropdown-menu { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 180px; overflow: hidden; z-index: 100; }
+        .dropdown-menu.open { display: block; }
+        .dropdown-menu a { display: block; padding: 0.7rem 1rem; color: #333; text-decoration: none; font-size: 0.9rem; cursor: pointer; }
+        .dropdown-menu a:hover { background: #f5f5f5; }
+        .dropdown-menu .divider { border-top: 1px solid #eee; margin: 0.2rem 0; }
+        .dropdown-menu .logout { color: #d93025; }
+
+        /* Content */
+        .content { padding: 2rem; max-width: 860px; margin: 0 auto; }
+        .welcome-card { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+        .welcome-card h2 { margin: 0 0 0.5rem; font-size: 1.8rem; color: #1a73e8; }
+        .welcome-card .role-badge { display: inline-block; margin-top: 0.6rem; padding: 0.3rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+        .badge-ADMIN { background: #fce8e6; color: #c5221f; }
+        .badge-DOCTOR { background: #e8f0fe; color: #1a73e8; }
+        .badge-PATIENT { background: #e6f4ea; color: #2d7a3a; }
+        .welcome-card p { color: #666; margin-top: 0.8rem; font-size: 0.95rem; }
+
+        .active-role-info { margin-top: 0.5rem; font-size: 0.85rem; color: #888; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>🏥 Hospital Management</h1>
+    <div class="dropdown">
+        <button class="dropdown-btn" onclick="toggleDropdown()">
+            <span id="navName">Account</span> ▾
+        </button>
+        <div class="dropdown-menu" id="dropdownMenu">
+            <div id="switchRoleOption"></div>
+            <div class="divider"></div>
+            <a class="logout" onclick="logout()">🚪 Logout</a>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+    <div class="welcome-card">
+        <h2 id="welcomeText">Welcome!</h2>
+        <div id="roleBadges"></div>
+        <p id="roleDescription"></p>
+        <p class="active-role-info" id="activeRoleInfo"></p>
+    </div>
+</div>
+
+<script>
+    // --- JWT decode (no library needed) ---
+    function parseJwt(token) {
+        const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(base64));
+    }
+
+    // --- Init: read token from URL (Google flow) or localStorage (email flow) ---
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl = params.get('token');
+    const userIdFromUrl = params.get('userId');
+
+    if (tokenFromUrl) {
+        localStorage.setItem('jwt', tokenFromUrl);
+        localStorage.setItem('userId', userIdFromUrl);
+        window.history.replaceState({}, document.title, '/api/v1/dashboard.html');
+    }
+
+    const jwt = localStorage.getItem('jwt');
+    if (!jwt) {
+        window.location.href = '/api/v1/login.html';
+    }
+
+    const payload = parseJwt(jwt);
+    const name = payload.sub || 'User';
+    const roles = payload.roles || [];
+
+    // Active role: stored separately so ADMIN can switch
+    let activeRole = localStorage.getItem('activeRole');
+    if (!activeRole || !roles.includes(activeRole)) {
+        activeRole = roles.includes('ADMIN') ? 'ADMIN' : roles[0];
+        localStorage.setItem('activeRole', activeRole);
+    }
+
+    // --- Render ---
+    const firstName = name.includes('@') ? name.split('@')[0] : name;
+    document.getElementById('navName').textContent = firstName;
+    document.getElementById('welcomeText').textContent = `Welcome, ${firstName}! 👋`;
+
+    const badgeContainer = document.getElementById('roleBadges');
+    roles.forEach(role => {
+        const span = document.createElement('span');
+        span.className = `role-badge badge-${role}`;
+        span.textContent = role;
+        badgeContainer.appendChild(span);
+    });
+
+    const descriptions = {
+        ADMIN: 'You have full administrative access to the Hospital Management App.',
+        DOCTOR: 'You are a Doctor. You can manage your appointments and patients.',
+        PATIENT: 'You are a Patient. You can view and book appointments.'
+    };
+    document.getElementById('roleDescription').textContent = descriptions[activeRole] || '';
+    document.getElementById('activeRoleInfo').textContent = roles.length > 1
+        ? `Currently viewing as: ${activeRole}` : '';
+
+    // --- Switch role option (only if user has more than one role) ---
+    const switchContainer = document.getElementById('switchRoleOption');
+    if (roles.length > 1) {
+        roles.filter(r => r !== activeRole).forEach(role => {
+            const a = document.createElement('a');
+            a.textContent = `🔄 Switch to ${role}`;
+            a.onclick = () => switchRole(role);
+            switchContainer.appendChild(a);
+        });
+    }
+
+    function switchRole(role) {
+        localStorage.setItem('activeRole', role);
+        location.reload();
+    }
+
+    // --- Dropdown toggle ---
+    function toggleDropdown() {
+        document.getElementById('dropdownMenu').classList.toggle('open');
+    }
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.dropdown')) {
+            document.getElementById('dropdownMenu').classList.remove('open');
+        }
+    });
+
+    // --- Logout ---
+    function logout() {
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('activeRole');
+        window.location.href = '/api/v1/login.html';
+    }
+</script>
+</body>
+</html>
