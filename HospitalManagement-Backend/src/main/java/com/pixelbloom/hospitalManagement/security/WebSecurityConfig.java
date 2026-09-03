@@ -10,7 +10,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+
+import java.util.List;
 
 import static com.pixelbloom.hospitalManagement.entity.type.PermissionType.*;
 import static com.pixelbloom.hospitalManagement.entity.type.RoleType.*;
@@ -27,11 +32,34 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity
-                .csrf(csrfConfig -> csrfConfig.disable())
+
+                httpSecurity
+        .csrf(csrfConfig -> csrfConfig.disable())
+                .cors(cors -> {})
+                .sessionManagement(sessionConfig ->
+                        sessionConfig.sessionCreationPolicy(
+                                SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                "/public/**",
+                                "/auth/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/*.html"
+                        ).permitAll()
+
+                        // existing rules...
+
+                        .anyRequest().authenticated()
+                )
+                /*.csrf(csrfConfig -> csrfConfig.disable())
+                .cors(cors -> {})
                 .sessionManagement(sessionConfig ->
                         sessionConfig.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/public/**", "/auth/**",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html",
                                 "/*.html").permitAll()
@@ -41,7 +69,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/admin/**").hasRole(ADMIN.name())
                         .requestMatchers("/doctors/**").hasAnyRole(DOCTOR.name(), ADMIN.name())
                         .anyRequest().authenticated()
-                )
+                )*/
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(oAuth2 -> oAuth2
                         .failureHandler((request, response, exception) -> {
@@ -58,5 +86,6 @@ public class WebSecurityConfig {
 //                .formLogin();
         return httpSecurity.build();
     }
+
 
 }

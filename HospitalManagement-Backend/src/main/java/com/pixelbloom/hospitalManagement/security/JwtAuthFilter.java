@@ -27,11 +27,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final HandlerExceptionResolver handlerExceptionResolver;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
+
+        // Allow CORS preflight requests to pass through
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
             log.info("incoming request: {}", request.getRequestURI());
 
             final String requestTokenHeader = request.getHeader("Authorization");
+
             if (requestTokenHeader == null || !requestTokenHeader.startsWith("Bearer")) {
                 filterChain.doFilter(request, response);
                 return;
@@ -40,15 +52,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = requestTokenHeader.split("Bearer ")[1];
             String username = authUtil.getUsernameFromToken(token);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                User user = userRepository.findByUsername(username).orElseThrow();
-                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken
-                        = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            if (username != null &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                User user = userRepository
+                        .findByUsername(username)
+                        .orElseThrow();
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                user,
+                                null,
+                                user.getAuthorities()
+                        );
+
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authentication);
             }
+
             filterChain.doFilter(request, response);
+
         } catch (Exception ex) {
-            handlerExceptionResolver.resolveException(request, response, null, ex);
+            handlerExceptionResolver.resolveException(
+                    request,
+                    response,
+                    null,
+                    ex
+            );
         }
     }
 }

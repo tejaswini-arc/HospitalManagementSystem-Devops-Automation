@@ -2,15 +2,17 @@ import axios from 'axios'
 import { getToken, clearAll } from '../utils/tokenStore'
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: '/api',
 })
 
 // Attach JWT to every request
 apiClient.interceptors.request.use((config) => {
   const token = getToken()
+
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`
   }
+
   return config
 })
 
@@ -22,6 +24,7 @@ apiClient.interceptors.response.use(
       clearAll()
       window.location.href = '/login'
     }
+
     return Promise.reject(error)
   }
 )
