@@ -25,24 +25,7 @@ public class DepartmentService {
     private final DoctorRepository doctorRepository;
     private final ModelMapper modelMapper;
 
-    @Transactional
-    public DepartmentResponseDto createDepartment(DepartmentRequestDto dto) {
-        Department department = new Department();
-        department.setName(dto.getName());
 
-        if (dto.getHeadDoctorId() != null) {
-            Doctor headDoctor = doctorRepository.findById(dto.getHeadDoctorId())
-                    .orElseThrow(() -> new EntityNotFoundException("Doctor not found: " + dto.getHeadDoctorId()));
-            department.setHeadDoctor(headDoctor);
-        }
-
-        if (dto.getDoctorIds() != null && !dto.getDoctorIds().isEmpty()) {
-            Set<Doctor> doctors = new HashSet<>(doctorRepository.findAllById(dto.getDoctorIds()));
-            department.setDoctors(doctors);
-        }
-
-        return modelMapper.map(departmentRepository.save(department), DepartmentResponseDto.class);
-    }
 
     public List<DepartmentResponseDto> getAllDepartments() {
         return departmentRepository.findAll()
@@ -57,6 +40,67 @@ public class DepartmentService {
         Set<Doctor> doctors = new HashSet<>(doctorRepository.findAllById(doctorIds));
         department.getDoctors().addAll(doctors);
         return modelMapper.map(departmentRepository.save(department), DepartmentResponseDto.class);
+    }
+
+    @Transactional
+    public DepartmentResponseDto createDepartment(DepartmentRequestDto dto) {
+
+        String departmentName = dto.getName().trim();
+
+        if (departmentName.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Department name cannot be empty"
+            );
+        }
+
+        if (departmentRepository.existsByNameIgnoreCase(departmentName)) {
+            throw new IllegalArgumentException(
+                    "Department already exists with name: " + departmentName
+            );
+        }
+
+        Department department = new Department();
+
+        department.setName(departmentName);
+
+        department.setDescription(
+                dto.getDescription() != null
+                        ? dto.getDescription().trim()
+                        : null
+        );
+
+        if (dto.getHeadDoctorId() != null) {
+
+            Doctor headDoctor = doctorRepository
+                    .findById(dto.getHeadDoctorId())
+                    .orElseThrow(() ->
+                            new EntityNotFoundException(
+                                    "Doctor not found: "
+                                            + dto.getHeadDoctorId()
+                            )
+                    );
+
+            department.setHeadDoctor(headDoctor);
+        }
+
+        if (dto.getDoctorIds() != null
+                && !dto.getDoctorIds().isEmpty()) {
+
+            Set<Doctor> doctors =
+                    new HashSet<>(
+                            doctorRepository.findAllById(dto.getDoctorIds())
+                    );
+
+            department.setDoctors(doctors);
+        }
+
+        Department savedDepartment =
+                departmentRepository.save(department);
+
+        return modelMapper.map(
+                savedDepartment,
+                DepartmentResponseDto.class
+        );
     }
 
 }

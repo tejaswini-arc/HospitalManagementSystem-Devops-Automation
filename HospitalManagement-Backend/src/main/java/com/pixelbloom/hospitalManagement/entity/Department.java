@@ -1,6 +1,7 @@
 package com.pixelbloom.hospitalManagement.entity;
 
 import jakarta.persistence.*;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,13 +15,30 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(
+        name = "department",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_department_name",
+                        columnNames = "name"
+                )
+        }
+)
 public class Department {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(
+            nullable = false,
+            unique = true,
+            length = 100
+    )
     private String name;
+
+    @Column(length = 500)
+    private String description;
 
     @OneToOne
     private Doctor headDoctor;
@@ -32,5 +50,4 @@ public class Department {
             inverseJoinColumns = @JoinColumn(name = "doctor_id")
     )
     private Set<Doctor> doctors = new HashSet<>();
-
 }
