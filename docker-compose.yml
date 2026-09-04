@@ -1,84 +1,90 @@
-  services:
+## this is building image purely from docker-compose file and then we manually do docker compose push to push to hub
+## - jib has to be disabled <exceutions> </exes> for using this approach of docker-compose
+services:
 
-    # =========================
-    # MySQL Database
-    # =========================
-    mysql:
-      image: mysql:8.4
-      container_name: hospital-mysql
+  # =========================
+  # MySQL Database
+  # =========================
+  mysql:
+    image: mysql:8.4
+    container_name: hospital-mysql
 
-      environment:
-        MYSQL_ROOT_PASSWORD: root
-        MYSQL_DATABASE: hospitaldb
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: hospitaldb
 
-      volumes:
-        - mysql-data:/var/lib/mysql
+    volumes:
+      - mysql-data:/var/lib/mysql
 
-      networks:
-        - hospital-network
+    networks:
+      - hospital-network
 
-      healthcheck:
-        test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
-        interval: 5s
-        timeout: 5s
-        retries: 10
-        start_period: 20s
-
-
-    # =========================
-    # Spring Boot Backend
-    # =========================
-    backend:
-      build:
-        context: ./HospitalManagement-Backend
-        dockerfile: Dockerfile
-
-      container_name: hospital-backend
-
-      ports:
-        - "8080:8080"
-
-      environment:
-        GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-        GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-
-      depends_on:
-        mysql:
-          condition: service_healthy
-
-      networks:
-        - hospital-network
-
-
-    # =========================
-    # React Frontend + Nginx
-    # =========================
-    frontend:
-      build:
-        context: ./HospitalManagement-Frontend
-        dockerfile: Dockerfile
-
-      container_name: hospital-frontend
-
-      ports:
-        - "3000:80"
-
-      depends_on:
-        - backend
-
-      networks:
-        - hospital-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 
   # =========================
-  # Persistent Volumes
+  # Spring Boot Backend
   # =========================
-  volumes:
-    mysql-data:
+  backend:
+    build:
+      context: ./HospitalManagement-Backend
+      dockerfile: Dockerfile
+
+    image: pixelbloom/hospitalmanagementsystem-backend:${IMAGE_TAG}
+
+    container_name: hospital-backend
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    networks:
+      - hospital-network
 
 
   # =========================
-  # Docker Network
+  # React Frontend + Nginx
   # =========================
-  networks:
-    hospital-network:
+  frontend:
+    build:
+      context: ./HospitalManagement-Frontend
+      dockerfile: Dockerfile
+
+    image: pixelbloom/hospitalmanagementsystem-frontend:${IMAGE_TAG}
+
+    container_name: hospital-frontend
+
+    ports:
+      - "3000:80"
+
+    depends_on:
+      - backend
+
+    networks:
+      - hospital-network
+
+
+# =========================
+# Persistent Volumes
+# =========================
+volumes:
+  mysql-data:
+
+
+# =========================
+# Docker Network
+# =========================
+networks:
+  hospital-network:
