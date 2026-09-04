@@ -105,8 +105,9 @@ export default function SignupPage() {
   }
 
  const handleGoogleSignup = () => {
-     window.location.href =
-        "http://localhost:8080/api/v1/oauth2/authorization/google";
+    // window.location.href =
+        //"http://localhost:8080/api/v1/oauth2/authorization/google";
+        window.location.href = "/api/v1/oauth2/authorization/google";
  };
 
   return (
